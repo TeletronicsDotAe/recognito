@@ -203,7 +203,7 @@ public class Recognito<K> {
      * @return the voice print
      * @throws UnsupportedAudioFileException when the JVM does not support the file format
      * @throws IOException when an I/O exception occurs
-     * @see Recognito#createVoicePrint(Object, double[], float)
+     * @see Recognito#createVoicePrint(Object, double[])
      */
     public VoicePrint createVoicePrint(K userKey, File voiceSampleFile) 
             throws UnsupportedAudioFileException, IOException {
@@ -275,7 +275,7 @@ public class Recognito<K> {
      * @return the updated voice print
      * @throws UnsupportedAudioFileException when the JVM does not support the file format
      * @throws IOException when an I/O exception occurs
-     * @see Recognito#mergeVoiceSample(Object, double[], float)
+     * @see Recognito#mergeVoiceSample(Object, double[])
      */
     public VoicePrint mergeVoiceSample(K userKey, File voiceSampleFile) 
             throws UnsupportedAudioFileException, IOException {
@@ -335,7 +335,7 @@ public class Recognito<K> {
      * @return a list MatchResults sorted by distance
      * @throws UnsupportedAudioFileException when the JVM does not support the audio file format
      * @throws IOException when an I/O exception occurs
-     * @see Recognito#identify(double[], float)
+     * @see Recognito#identify(double[])
      */
     public  List<MatchResult<K>> identify(File voiceSampleFile) 
             throws UnsupportedAudioFileException, IOException {
