@@ -62,7 +62,8 @@ public class AbsoluteEuclideanDistBelowThresholdForPtcOfWordsIsAMatch implements
                     wordsWithinThreshold++;
                 }
             }
-            if (words.length > 0 && (100.0 * (wordsWithinThreshold / words.length)) > wordsPctThreshold) {
+            System.out.println(f.getAbsolutePath() + " " + words.length + " " + wordsWithinThreshold + " " + ((words.length > 0)?(100.0 * ((double)wordsWithinThreshold / words.length)):0));
+            if (words.length > 0 && (100.0 * ((double)wordsWithinThreshold / words.length)) > wordsPctThreshold) {
                 VoicePrint fVoicePrint = recognito.constructVoicePrint(f);
                 double fDistance = fVoicePrint.getDistance(distanceCalculator, speakerVoicePrint);
                 if (fDistance < distanceThreshold) {
