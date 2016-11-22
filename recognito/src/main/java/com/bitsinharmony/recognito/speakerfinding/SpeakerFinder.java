@@ -2,6 +2,7 @@ package com.bitsinharmony.recognito.speakerfinding;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 
 public class SpeakerFinder {
@@ -21,16 +22,23 @@ public class SpeakerFinder {
 
         speakerFinderAlgorithm.initialize(Arrays.asList(args).subList(3, args.length).toArray(new String[]{}));
 
-        List<File> probablyContainingSpeaker = speakerFinderAlgorithm.findAudioFilesContainingSpeaker(speakerAudioFile, learningAudioFilesFolder, toBeScreenedForAudioFilesWithSpeakerFolder);
-        for (File ct : probablyContainingSpeaker) {
-            if (!ct.isFile() || !ct.getAbsolutePath().startsWith(toBeScreenedForAudioFilesWithSpeakerFolder.getAbsolutePath())) {
+        List<SpeakerFinderAlgorithm.Match> probablyContainingSpeaker = speakerFinderAlgorithm.findAudioFilesContainingSpeaker(speakerAudioFile, learningAudioFilesFolder, toBeScreenedForAudioFilesWithSpeakerFolder);
+        for (SpeakerFinderAlgorithm.Match m : probablyContainingSpeaker) {
+            if (!m.audioFile.isFile() || !m.audioFile.getAbsolutePath().startsWith(toBeScreenedForAudioFilesWithSpeakerFolder.getAbsolutePath())) {
                 System.err.println("Wrong implementation of " + SpeakerFinderAlgorithm.class.getSimpleName());
                 System.exit(-1);
             }
         }
-        System.out.println("Pointed out the following to contain speaker");
-        for (File ct : probablyContainingSpeaker) {
-            System.out.println(ct.getAbsolutePath());
+
+        probablyContainingSpeaker.sort(new Comparator<SpeakerFinderAlgorithm.Match>() {
+            @Override
+            public int compare(SpeakerFinderAlgorithm.Match o1, SpeakerFinderAlgorithm.Match o2) {
+                return Double.compare(o1.distance, o2.distance);
+            }
+        });
+        System.out.println("Pointed out the following to contain speaker (distance)");
+        for (SpeakerFinderAlgorithm.Match m : probablyContainingSpeaker) {
+            System.out.println(m.audioFile.getAbsolutePath() + " (" + m.distance + ")");
         }
     }
 

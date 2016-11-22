@@ -39,15 +39,16 @@ public class AbsoluteEuclideanDistBelowThresholdIsAMatch implements SpeakerFinde
     }
 
     @Override
-    public List<File> findAudioFilesContainingSpeaker(File speakerAudioFile, File learningAudioFilesFolder, File toBeScreenedForAudioFilesWithSpeakerFolder) throws Exception {
+    public List<Match> findAudioFilesContainingSpeaker(File speakerAudioFile, File learningAudioFilesFolder, File toBeScreenedForAudioFilesWithSpeakerFolder) throws Exception {
         // We do not care about the learning material - no usage of Universal Model
 
         VoicePrint speakerVoicePrint = recognito.createVoicePrint("favoriteSpeaker", speakerAudioFile);
-        List<File> result = new ArrayList<File>();
+        List<Match> result = new ArrayList<Match>();
         for (File f : toBeScreenedForAudioFilesWithSpeakerFolder.listFiles()) {
             VoicePrint fVoicePrint = recognito.createVoicePrint(UUID.randomUUID().toString(), f);
-            if (fVoicePrint.getDistance(distanceCalculator, speakerVoicePrint) < threshold) {
-                result.add(f);
+            double distance = fVoicePrint.getDistance(distanceCalculator, speakerVoicePrint);
+            if (distance < threshold) {
+                result.add(new Match(f, distance));
             }
         }
 
