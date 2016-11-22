@@ -28,9 +28,6 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import javax.sound.sampled.AudioFormat;
-import javax.sound.sampled.AudioInputStream;
-import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.UnsupportedAudioFileException;
 
 import com.bitsinharmony.recognito.distances.DistanceCalculator;
@@ -38,7 +35,7 @@ import com.bitsinharmony.recognito.distances.EuclideanDistanceCalculator;
 import com.bitsinharmony.recognito.enhancements.Normalizer;
 import com.bitsinharmony.recognito.features.FeaturesExtractor;
 import com.bitsinharmony.recognito.features.LpcFeaturesExtractor;
-import com.bitsinharmony.recognito.utils.FileHelper;
+import com.bitsinharmony.recognito.utils.AudioConverter;
 import com.bitsinharmony.recognito.vad.AutocorrellatedVoiceActivityDetector;
 
 /**
@@ -192,6 +189,20 @@ public class Recognito<K> {
         
         return voicePrint;
     }
+
+    public VoicePrint constructVoicePrint(File voiceSampleFile)
+            throws UnsupportedAudioFileException, IOException {
+
+        double[] audioSample = AudioConverter.convertFileToDoubleArray(voiceSampleFile, sampleRate);
+
+        return constructVoicePrint(audioSample);
+    }
+
+    public VoicePrint constructVoicePrint(double[] voiceSample) {
+        double[] features = extractFeatures(voiceSample, sampleRate);
+
+        return new VoicePrint(features);
+    }
     
     /**
      * Convenience method to load voice samples from files.
@@ -208,31 +219,12 @@ public class Recognito<K> {
     public VoicePrint createVoicePrint(K userKey, File voiceSampleFile) 
             throws UnsupportedAudioFileException, IOException {
         
-        double[] audioSample = convertFileToDoubleArray(voiceSampleFile);
+        double[] audioSample = AudioConverter.convertFileToDoubleArray(voiceSampleFile, sampleRate);
 
         return createVoicePrint(userKey, audioSample);
     }
 
-    /**
-     * Converts the given audio file to an array of doubles with values between -1.0 and 1.0
-     * @param voiceSampleFile the file to convert
-     * @return an array of doubles
-     * @throws UnsupportedAudioFileException when the JVM does not support the file format
-     * @throws IOException when an I/O exception occurs
-     */
-    private double[] convertFileToDoubleArray(File voiceSampleFile) 
-            throws UnsupportedAudioFileException, IOException {
-        
-        AudioInputStream sample = AudioSystem.getAudioInputStream(voiceSampleFile);
-        AudioFormat format = sample.getFormat();
-        float diff = Math.abs(format.getSampleRate() - sampleRate);
-        if(diff > 5 * Math.ulp(0.0f)) {
-            throw new IllegalArgumentException("The sample rate for this file is different than Recognito's " +
-            		"defined sample rate : [" + format.getSampleRate() + "]");
-        }
-        return FileHelper.readAudioInputStream(sample);
-    }
-    
+
     /**
      * Extracts voice features from the given voice sample and merges them with previous voice 
      * print extracted for this user key
@@ -280,7 +272,7 @@ public class Recognito<K> {
     public VoicePrint mergeVoiceSample(K userKey, File voiceSampleFile) 
             throws UnsupportedAudioFileException, IOException {
         
-        double[] audioSample = convertFileToDoubleArray(voiceSampleFile);
+        double[] audioSample = AudioConverter.convertFileToDoubleArray(voiceSampleFile, sampleRate);
 
         return mergeVoiceSample(userKey, audioSample);
     }
@@ -340,7 +332,7 @@ public class Recognito<K> {
     public  List<MatchResult<K>> identify(File voiceSampleFile) 
             throws UnsupportedAudioFileException, IOException {
         
-        double[] audioSample = convertFileToDoubleArray(voiceSampleFile);
+        double[] audioSample = AudioConverter.convertFileToDoubleArray(voiceSampleFile, sampleRate);
 
         return identify(audioSample);
     }

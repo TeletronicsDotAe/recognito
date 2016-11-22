@@ -16,6 +16,7 @@
  */
 package com.bitsinharmony.recognito.utils;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
 import javax.sound.sampled.AudioFormat;
@@ -49,8 +50,7 @@ public class FileHelper {
         } else {
             localIs = is;
         }
-        
-        
+
         double[] audioSample = new double[(int)localIs.getFrameLength()];
         byte[] buffer = new byte[8192];
         int bytesRead = 0;
@@ -66,6 +66,12 @@ public class FileHelper {
         }
         return audioSample;
     }
+
+    public static AudioInputStream writeAudioInputStream(double[] doubles, AudioFormat format) {
+        byte[] bytes = shortsToBytes(doubles, format.isBigEndian());
+
+        return new AudioInputStream(new ByteArrayInputStream(bytes), format, bytes.length);
+    }
     
     private static short byteArrayToShort(byte[] bytes, int offset, boolean bigEndian) {
         int low, high;
@@ -78,5 +84,27 @@ public class FileHelper {
         }
         return (short) ((high << 8) | (0xFF & low));
     }
-    
+
+    private static byte[] shortsToBytes(double[] data, boolean bigEndian) {
+        byte[] bytes = new byte[data.length*2];
+
+        for (int i = 0; i < data.length; i++) {
+            short s = (short)(data[i] * 32768);
+
+            int low = (0xFF & s);
+            int high = ((0xFF00 & s) >> 8);
+            if (bigEndian) {
+                bytes[i*2 + 1] = (byte)low;
+                bytes[i*2] = (byte)high;
+            } else {
+                bytes[i*2] = (byte)low;
+                bytes[i*2 + 1] = (byte)high;
+            }
+
+        }
+
+        return bytes;
+    }
+
+
 }

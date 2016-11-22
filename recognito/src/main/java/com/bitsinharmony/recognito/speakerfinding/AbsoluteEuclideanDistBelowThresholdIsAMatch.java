@@ -8,14 +8,13 @@ import com.bitsinharmony.recognito.distances.EuclideanDistanceCalculator;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 public class AbsoluteEuclideanDistBelowThresholdIsAMatch implements SpeakerFinderAlgorithm {
 
     private final Recognito<String> recognito;
     private final DistanceCalculator distanceCalculator;
 
-    private double threshold;
+    private double distanceThreshold;
 
     public AbsoluteEuclideanDistBelowThresholdIsAMatch(float sampleRate) {
         recognito = new Recognito<String>(sampleRate);
@@ -24,8 +23,8 @@ public class AbsoluteEuclideanDistBelowThresholdIsAMatch implements SpeakerFinde
 
     @Override
     public void initialize(String[] args) {
-        threshold = Float.parseFloat(args[0]);
-        System.out.println("Threshold: " + threshold);
+        distanceThreshold = Double.parseDouble(args[0]);
+        System.out.println("Distance threshold: " + distanceThreshold);
     }
 
     @Override
@@ -35,20 +34,20 @@ public class AbsoluteEuclideanDistBelowThresholdIsAMatch implements SpeakerFinde
 
     @Override
     public String getParamsListForUsage() {
-        return "<threshold>";
+        return "<distance-threshold>";
     }
 
     @Override
     public List<Match> findAudioFilesContainingSpeaker(File speakerAudioFile, File learningAudioFilesFolder, File toBeScreenedForAudioFilesWithSpeakerFolder) throws Exception {
         // We do not care about the learning material - no usage of Universal Model
 
-        VoicePrint speakerVoicePrint = recognito.createVoicePrint("favoriteSpeaker", speakerAudioFile);
+        VoicePrint speakerVoicePrint = recognito.constructVoicePrint(speakerAudioFile);
         List<Match> result = new ArrayList<Match>();
         for (File f : toBeScreenedForAudioFilesWithSpeakerFolder.listFiles()) {
-            VoicePrint fVoicePrint = recognito.createVoicePrint(UUID.randomUUID().toString(), f);
-            double distance = fVoicePrint.getDistance(distanceCalculator, speakerVoicePrint);
-            if (distance < threshold) {
-                result.add(new Match(f, distance));
+            VoicePrint fVoicePrint = recognito.constructVoicePrint(f);
+            double fDistance = fVoicePrint.getDistance(distanceCalculator, speakerVoicePrint);
+            if (fDistance < distanceThreshold) {
+                result.add(new Match(f, fDistance));
             }
         }
 

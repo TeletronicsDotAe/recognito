@@ -16,7 +16,9 @@
  */
 package com.bitsinharmony.recognito.vad;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * A voice activity detector attempts to detect presence or abscence of voice in the signal.
@@ -124,6 +126,55 @@ public class AutocorrellatedVoiceActivityDetector {
             return voiceSample;
         }
     }
+
+    public double[][] splitBySilence(double[] voiceSample, float sampleRate) {
+        int oneMilliInSamples = (int)sampleRate / 1000;
+
+        int length = voiceSample.length;
+        int minSilenceLength = MIN_SILENCE_MILLIS * oneMilliInSamples;
+        int minActivityLength = getMinimumVoiceActivityLength(sampleRate);
+        boolean[] result = new boolean[length];
+
+        if(length < minActivityLength) {
+            return new double[][]{voiceSample};
+        }
+
+        int windowSize = WINDOW_MILLIS * oneMilliInSamples;
+        double[] correlation = new double[windowSize];
+        double[] window = new double[windowSize];
+
+        for(int position = 0; position + windowSize < length; position += windowSize) {
+            System.arraycopy(voiceSample, position, window, 0, windowSize);
+            double mean = bruteForceAutocorrelation(window, correlation);
+            Arrays.fill(result, position, position + windowSize, mean > threshold);
+        }
+
+        mergeSmallSilentAreas(result, minSilenceLength);
+
+        int silenceCounter = mergeSmallActiveAreas(result, minActivityLength);
+
+        if (silenceCounter > 0) {
+            List<double[]> splitResult = new ArrayList<double[]>();
+            for (int i = 0; i < result.length; i++) {
+                if (result[i]) {
+                    // detect lenght of active frame
+                    int startIndex = i;
+                    int counter = 0;
+                    while (i < result.length && result[i++]) {
+                        counter++;
+                    }
+
+                    double[] newFragment = new double[counter];
+                    System.arraycopy(voiceSample, startIndex, newFragment, 0, counter);
+                    splitResult.add(newFragment);
+                }
+            }
+            return splitResult.toArray(new double[][]{});
+        } else {
+            return new double[][]{voiceSample};
+        }
+    }
+
 
     /**
      * Gets the minimum voice activity length that will be considered by the remove silence method
