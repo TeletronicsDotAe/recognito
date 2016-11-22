@@ -73,7 +73,7 @@ public final class VoicePrint
      * @param voicePrint the voice print
      * @return the distance
      */
-    double getDistance(DistanceCalculator calculator, VoicePrint voicePrint) {
+    public double getDistance(DistanceCalculator calculator, VoicePrint voicePrint) {
         r.lock();
         try { 
             return calculator.getDistance(this.features, voicePrint.features);
