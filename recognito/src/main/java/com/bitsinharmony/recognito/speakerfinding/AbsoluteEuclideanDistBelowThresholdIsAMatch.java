@@ -1,23 +1,22 @@
 package com.bitsinharmony.recognito.speakerfinding;
 
-import com.bitsinharmony.recognito.Recognito;
 import com.bitsinharmony.recognito.VoicePrint;
 import com.bitsinharmony.recognito.distances.DistanceCalculator;
 import com.bitsinharmony.recognito.distances.EuclideanDistanceCalculator;
+import com.bitsinharmony.recognito.utils.AudioConverter;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AbsoluteEuclideanDistBelowThresholdIsAMatch implements SpeakerFinderAlgorithm {
+public class AbsoluteEuclideanDistBelowThresholdIsAMatch extends SpeakerFinderAlgorithm {
 
-    private final Recognito<String> recognito;
     private final DistanceCalculator distanceCalculator;
 
     private double distanceThreshold;
 
-    public AbsoluteEuclideanDistBelowThresholdIsAMatch(float sampleRate) {
-        recognito = new Recognito<String>(sampleRate);
+    public AbsoluteEuclideanDistBelowThresholdIsAMatch(PreprocessorAndFeatureExtractor preprocessorAndFeatureExtractor, float sampleRate) {
+        super(preprocessorAndFeatureExtractor, sampleRate);
         distanceCalculator = new EuclideanDistanceCalculator();
     }
 
@@ -38,20 +37,42 @@ public class AbsoluteEuclideanDistBelowThresholdIsAMatch implements SpeakerFinde
     }
 
     @Override
-    public List<Match> findAudioFilesContainingSpeaker(File speakerAudioFile, File learningAudioFilesFolder, File toBeScreenedForAudioFilesWithSpeakerFolder) throws Exception {
+    public List<MyMatch> findAudioFilesContainingSpeaker(VoicePrint speakerVoicePrint, File learningAudioFilesFolder, File toBeScreenedForAudioFilesWithSpeakerFolder) throws Exception {
         // We do not care about the learning material - no usage of Universal Model
 
-        VoicePrint speakerVoicePrint = recognito.constructVoicePrint(speakerAudioFile);
-        List<Match> result = new ArrayList<Match>();
+        List<MyMatch> result = new ArrayList<MyMatch>();
         for (File f : toBeScreenedForAudioFilesWithSpeakerFolder.listFiles()) {
-            VoicePrint fVoicePrint = recognito.constructVoicePrint(f);
+            double[] audio = AudioConverter.convertFileToDoubleArray(f, sampleRate);
+            double[] features = preprocessorAndFeatureExtractor.preProcessAndextractFeatures(audio);
+            VoicePrint fVoicePrint = new VoicePrint(features);
             double fDistance = fVoicePrint.getDistance(distanceCalculator, speakerVoicePrint);
             if (fDistance < distanceThreshold) {
-                result.add(new Match(f, fDistance));
+                result.add(new MyMatch(f, fDistance));
             }
         }
 
         return result;
+    }
+
+    public static class MyMatch extends Match {
+
+        final double distance;
+
+        public MyMatch(File audioFile, double distance) {
+            super(audioFile);
+            this.distance = distance;
+        }
+
+        @Override
+        public int compareTo(Match m) {
+            if (m != null && !(m instanceof MyMatch)) throw new RuntimeException("Cannot compare " + this.getClass().getSimpleName() + " with " + m.getClass().getSimpleName());
+            return Double.compare(((MyMatch)m).distance, this.distance);
+        }
+
+        @Override
+        public String logicalDistanceDescription() {
+            return "distance " + distance;
+        }
     }
 
 }

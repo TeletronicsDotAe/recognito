@@ -1,27 +1,50 @@
 package com.bitsinharmony.recognito.speakerfinding;
 
+import com.bitsinharmony.recognito.VoicePrint;
+import com.bitsinharmony.recognito.utils.AudioConverter;
+
 import java.io.File;
 import java.util.List;
 
-public interface SpeakerFinderAlgorithm {
+public abstract class SpeakerFinderAlgorithm {
 
-    class Match {
+    abstract static class Match implements Comparable<Match> {
         final File audioFile;
-        final double distance;
 
-        public Match(File audioFile, double distance) {
+        public Match(File audioFile) {
             this.audioFile = audioFile;
-            this.distance = distance;
         }
+
+        public abstract String logicalDistanceDescription();
 
     }
 
-    void initialize(String[] args);
+    protected final PreprocessorAndFeatureExtractor preprocessorAndFeatureExtractor;
+    protected final float sampleRate;
 
-    int noParams();
+    public SpeakerFinderAlgorithm(PreprocessorAndFeatureExtractor preprocessorAndFeatureExtractor, float sampleRate) {
+        this.preprocessorAndFeatureExtractor = preprocessorAndFeatureExtractor;
+        this.sampleRate = sampleRate;
+    }
 
-    String getParamsListForUsage();
+    abstract void initialize(String[] args);
 
-    List<Match> findAudioFilesContainingSpeaker(File speakerAudioFile, File learningAudioFilesFolder, File toBeScreenedForAudioFilesWithSpeakerFolder) throws Exception;
+    abstract int noParams();
+
+    abstract String getParamsListForUsage();
+
+    public List<? extends Match> findAudioFilesContainingSpeaker(File speakerAudioFilesFolder, File learningAudioFilesFolder, File toBeScreenedForAudioFilesWithSpeakerFolder) throws Exception {
+        VoicePrint speakerVoicePrint = null;
+        for (File speakerAudioFile : speakerAudioFilesFolder.listFiles()) {
+            double[] audio = AudioConverter.convertFileToDoubleArray(speakerAudioFile, sampleRate);
+            double[] features = preprocessorAndFeatureExtractor.preProcessAndextractFeatures(audio);
+            if (speakerVoicePrint == null) speakerVoicePrint = new VoicePrint(features);
+            else speakerVoicePrint.merge(features);
+        }
+
+        return findAudioFilesContainingSpeaker(speakerVoicePrint, learningAudioFilesFolder, toBeScreenedForAudioFilesWithSpeakerFolder);
+    }
+
+    abstract public List<? extends Match> findAudioFilesContainingSpeaker(VoicePrint speakerVoicePrint, File learningAudioFilesFolder, File toBeScreenedForAudioFilesWithSpeakerFolder) throws Exception;
 
 }

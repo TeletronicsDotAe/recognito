@@ -50,7 +50,7 @@ public final class VoicePrint
      * Contructor for a voice print
      * @param features the features
      */
-    VoicePrint(double[] features) {
+    public VoicePrint(double[] features) {
         super();
         this.features = features;
         this.meanCount = 1;
@@ -60,7 +60,7 @@ public final class VoicePrint
      * Copy constructor
      * @param print the VoicePrint to copy
      */
-    VoicePrint(VoicePrint print) {
+    public VoicePrint(VoicePrint print) {
         this(Arrays.copyOf(print.features, print.features.length));
     }
 
@@ -87,7 +87,7 @@ public final class VoicePrint
      * regarding another one in the sense that the distance calculation will not happen on half merged voice print
      * @param features the features to merge
      */
-    void merge(double[] features) {
+    public void merge(double[] features) {
         if(this.features.length != features.length) {
             throw new IllegalArgumentException("Features of new VoicePrint is of different size : [" + 
                     features.length + "] expected [" + this.features.length + "]");

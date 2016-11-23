@@ -1,6 +1,5 @@
 package com.bitsinharmony.recognito.speakerfinding;
 
-import com.bitsinharmony.recognito.Recognito;
 import com.bitsinharmony.recognito.VoicePrint;
 import com.bitsinharmony.recognito.distances.DistanceCalculator;
 import com.bitsinharmony.recognito.distances.EuclideanDistanceCalculator;
@@ -11,19 +10,16 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AbsoluteEuclideanDistBelowThresholdForPtcOfWordsIsAMatch implements SpeakerFinderAlgorithm {
+public class AbsoluteEuclideanDistBelowThresholdForPtcOfWordsIsAMatch extends SpeakerFinderAlgorithm {
 
-    private final float sampleRate;
-    private final Recognito<String> recognito;
     private final DistanceCalculator distanceCalculator;
     private final AutocorrellatedVoiceActivityDetector voiceDetector;
 
     private double distanceThreshold;
     private double wordsPctThreshold;
 
-    public AbsoluteEuclideanDistBelowThresholdForPtcOfWordsIsAMatch(float sampleRate) {
-        this.sampleRate = sampleRate;
-        recognito = new Recognito<String>(sampleRate);
+    public AbsoluteEuclideanDistBelowThresholdForPtcOfWordsIsAMatch(PreprocessorAndFeatureExtractor preprocessorAndFeatureExtractor, float sampleRate) {
+        super(preprocessorAndFeatureExtractor, sampleRate);
         distanceCalculator = new EuclideanDistanceCalculator();
         voiceDetector = new AutocorrellatedVoiceActivityDetector();
     }
@@ -31,9 +27,9 @@ public class AbsoluteEuclideanDistBelowThresholdForPtcOfWordsIsAMatch implements
     @Override
     public void initialize(String[] args) {
         distanceThreshold = Double.parseDouble(args[0]);
-        System.out.println("Distance threshold: " + distanceThreshold);
+        System.out.println("Word distance threshold: " + distanceThreshold);
         wordsPctThreshold = Double.parseDouble(args[1]);
-        System.out.println("Word percent distanceThreshold: " + wordsPctThreshold);
+        System.out.println("Words within distance percentage threshold: " + wordsPctThreshold);
     }
 
     @Override
@@ -43,36 +39,61 @@ public class AbsoluteEuclideanDistBelowThresholdForPtcOfWordsIsAMatch implements
 
     @Override
     public String getParamsListForUsage() {
-        return "<distance-threshold> <word-pct-threshold>";
+        return "<word-distance-threshold> <words-within-distance-pct-threshold>";
     }
 
     @Override
-    public List<Match> findAudioFilesContainingSpeaker(File speakerAudioFile, File learningAudioFilesFolder, File toBeScreenedForAudioFilesWithSpeakerFolder) throws Exception {
+    public List<Match> findAudioFilesContainingSpeaker(VoicePrint speakerVoicePrint, File learningAudioFilesFolder, File toBeScreenedForAudioFilesWithSpeakerFolder) throws Exception {
         // We do not care about the learning material - no usage of Universal Model
 
-        VoicePrint speakerVoicePrint = recognito.constructVoicePrint(speakerAudioFile);
         List<Match> result = new ArrayList<Match>();
         for (File f : toBeScreenedForAudioFilesWithSpeakerFolder.listFiles()) {
             double[][] words = voiceDetector.splitBySilence(AudioConverter.convertFileToDoubleArray(f, sampleRate), sampleRate);
             int wordsWithinThreshold = 0;
             for (int i = 0; i < words.length; i++) {
-                VoicePrint wordVoicePrint = recognito.constructVoicePrint(words[i]);
+                double[] features = preprocessorAndFeatureExtractor.preProcessAndextractFeatures(words[i]);
+                VoicePrint wordVoicePrint = new VoicePrint(features);
                 double wordDistance = wordVoicePrint.getDistance(distanceCalculator, speakerVoicePrint);
                 if (wordDistance < distanceThreshold) {
                     wordsWithinThreshold++;
                 }
             }
-            // System.out.println(f.getAbsolutePath() + " " + words.length + " " + wordsWithinThreshold + " " + ((words.length > 0)?(100.0 * ((double)wordsWithinThreshold / words.length)):0));
-            if (words.length > 0 && (100.0 * ((double)wordsWithinThreshold / words.length)) > wordsPctThreshold) {
-                VoicePrint fVoicePrint = recognito.constructVoicePrint(f);
-                double fDistance = fVoicePrint.getDistance(distanceCalculator, speakerVoicePrint);
-                if (fDistance < distanceThreshold) {
-                    result.add(new Match(f, fDistance));
-                }
+            MyMatch myMatch = new MyMatch(f, words.length, wordsWithinThreshold);
+            // System.out.println(f.getAbsolutePath() + " " + words.length + " " + wordsWithinThreshold + " " + myMatch.pctOfWordsWithinThreshold());
+            if (myMatch.pctOfWordsWithinThreshold() > wordsPctThreshold) {
+                result.add(myMatch);
             }
         }
 
         return result;
     }
+
+    public static class MyMatch extends Match {
+
+        final int totalWords;
+        final int wordsWithinThreshold;
+
+        public MyMatch(File audioFile, int totalWords, int wordsWithinThreshold) {
+            super(audioFile);
+            this.totalWords = totalWords;
+            this.wordsWithinThreshold = wordsWithinThreshold;
+        }
+
+        @Override
+        public int compareTo(Match m) {
+            if (m != null && !(m instanceof MyMatch)) throw new RuntimeException("Cannot compare " + this.getClass().getSimpleName() + " with " + m.getClass().getSimpleName());
+            return Double.compare(this.pctOfWordsWithinThreshold(), ((MyMatch)m).pctOfWordsWithinThreshold());
+        }
+
+        @Override
+        public String logicalDistanceDescription() {
+            return "" + wordsWithinThreshold + "/" + totalWords + " (" + pctOfWordsWithinThreshold() + "%) words with distance below threshold";
+        }
+
+        public double pctOfWordsWithinThreshold() {
+            return (totalWords != 0)?(100.0 * ((double)wordsWithinThreshold / totalWords)):0.0;
+        }
+    }
+
 
 }
