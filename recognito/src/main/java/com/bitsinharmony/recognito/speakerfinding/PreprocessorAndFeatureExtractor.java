@@ -3,6 +3,7 @@ package com.bitsinharmony.recognito.speakerfinding;
 import com.bitsinharmony.recognito.enhancements.Normalizer;
 import com.bitsinharmony.recognito.features.FeaturesExtractor;
 import com.bitsinharmony.recognito.features.LpcFeaturesExtractor;
+import com.bitsinharmony.recognito.features.MfccFeaturesExtractor;
 import com.bitsinharmony.recognito.vad.AutocorrellatedVoiceActivityDetector;
 
 public class PreprocessorAndFeatureExtractor {
@@ -10,6 +11,7 @@ public class PreprocessorAndFeatureExtractor {
     private final AutocorrellatedVoiceActivityDetector voiceDetector;
     private final Normalizer normalizer;
     private final FeaturesExtractor<double[]> lpcExtractor;
+    private final FeaturesExtractor<double[]> mfccExtractor;
 
     private final float sampleRate;
     private final String[] preProcessingKeys;
@@ -25,13 +27,14 @@ public class PreprocessorAndFeatureExtractor {
             }
         }
 
-        if (!"lpc".equals(featureExtractorKey)) {
+        if (!"lpc".equals(featureExtractorKey) && !"mfcc".equals(featureExtractorKey)) {
             throw new RuntimeException("Do not understand feature-extraction key " + featureExtractorKey);
         }
 
         voiceDetector = new AutocorrellatedVoiceActivityDetector();
         normalizer = new Normalizer();
         lpcExtractor = new LpcFeaturesExtractor(sampleRate, 20);
+        mfccExtractor = new MfccFeaturesExtractor(sampleRate, 60);
 
         this.sampleRate = sampleRate;
         this.preProcessingKeys = preProcessingKeys;
@@ -51,6 +54,8 @@ public class PreprocessorAndFeatureExtractor {
 
         if ("lpc".equals(featureExtractorKey)) {
             return lpcExtractor.extractFeatures(voiceSample);
+        } else if ("mfcc".equals(featureExtractorKey)) {
+            return mfccExtractor.extractFeatures(voiceSample);
         } else {
             return null;
         }

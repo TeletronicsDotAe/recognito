@@ -74,8 +74,10 @@ public class SpeakerFinder {
         sb.append("** \"removesilencenotworkwithresult\": To remove silence, but not proceeding with the result of it, but living with the side-effects (what original Recognito does)\n");
         sb.append("** \"removesilence\": To remove silence\n");
         sb.append("** \"normalize\": To normalize\n");
-        sb.append("* <feature-extraction> must be \"lpc\" (for now) and calculates \"Linear Predictive Codes\" voice-print\n");
-        if (finderAlgorithmKey != null) {
+        sb.append("* <feature-extraction> can be one of feature-extraction-keys:\n");
+        sb.append("** \"lpc\": For \"Linear Predictive Codes\" voice-prints\n");
+        sb.append("** \"mfcc\": For \"Mel-Frequency Cepstral Coefficients\" voice-prints\n");
+        if (finderAlgorithmKey == null) {
             sb.append("* <finder-algorithm> is one of the values:\n");
             sb.append("** \"abs_euclid_dist_below_threshold\": Finding the matching files in <folder-containing-audio-files-to-be-screened-for-favorite-speaker>, by calculating voice-print for favorite speaker by considering all audio-files in <folder-containing-audio-files-of-the-favorite-speaker>. For each file in <folder-containing-audio-files-to-be-screened-for-favorite-speaker>, calculate the voice-print. Print out all files where the euclidean distance between the files voice-print and the favorite speakers voice-print is below <finder-algorithm-params#1>\n");
             sb.append("** \"abs_euclid_dist_below_threshold_for_pct_of_words\": Finding the matching files in <folder-containing-audio-files-to-be-screened-for-favorite-speaker>, by calculate voice-print for favorite speaker by considering all audio-files in <folder-containing-audio-files-of-the-favorite-speaker>. For each file in <folder-containing-audio-files-to-be-screened-for-favorite-speaker>, split into words and calculate voice-print for each word. Print out all files where <finder-algorithm-params#2>% of the words have an euclidean distance below <finder-algorithm-params#1> to the favorite speakers voice-print\n");
@@ -83,7 +85,9 @@ public class SpeakerFinder {
         sb.append("* <folder-containing-audio-files-of-the-favorite-speaker>: Folder containing audio-files where the favorite speaker is known to speak. Used for calculating the voice-print for the favorite speaker\n");
         sb.append("* <folder-containing-learning-audio-files>: Not used\n");
         sb.append("* <folder-containing-audio-files-to-be-screened-for-favorite-speaker>: Folder containing audio-files to be screened for favorite speaker\n");
-        sb.append("* <finder-algorithm-params>: Additional arguments to the <finder-algorithm>. See the description for each <finder-algorithm> above\n");
+        if (finderAlgorithmKey == null) {
+            sb.append("* <finder-algorithm-params>: Additional arguments to the <finder-algorithm>. See the description for each <finder-algorithm> above\n");
+        }
         sb.append("Voice-prints are calculated by: pre-processing | feature-extraction > voice-print");
         System.err.println(sb.toString());
         System.exit(-1);
